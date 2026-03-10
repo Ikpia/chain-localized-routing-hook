@@ -41,7 +41,7 @@ contract RoutingPolicyRegistry is IRoutingPolicyRegistry {
     uint256 private _lock;
 
     modifier onlyOwner() {
-        if (msg.sender != owner) revert NotOwner();
+        _assertOwner();
         _;
     }
 
@@ -60,6 +60,10 @@ contract RoutingPolicyRegistry is IRoutingPolicyRegistry {
     constructor(address initialOwner) {
         if (initialOwner == address(0)) revert ZeroAddress();
         owner = initialOwner;
+    }
+
+    function _assertOwner() private view {
+        if (msg.sender != owner) revert NotOwner();
     }
 
     function transferOwnership(address newOwner) external onlyOwner {

@@ -101,7 +101,7 @@ contract ChainLocalizedRoutingHook is BaseHook {
         return (BaseHook.afterSwap.selector, 0);
     }
 
-    function _decodeContext(address sender, bytes calldata hookData) private pure returns (address router, address trader) {
+    function _decodeContext(address sender, bytes calldata hookData) internal pure returns (address router, address trader) {
         router = sender;
         trader = sender;
 
@@ -122,11 +122,9 @@ contract ChainLocalizedRoutingHook is BaseHook {
                 trader = decodedTrader;
             }
         }
-
-        return (router, trader);
     }
 
-    function _absolute(int256 value) private pure returns (uint256) {
+    function _absolute(int256 value) internal pure returns (uint256) {
         if (value >= 0) {
             return uint256(value);
         }

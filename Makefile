@@ -13,7 +13,7 @@ test:
 	forge test
 
 coverage:
-	forge coverage --report summary --report lcov
+	forge coverage --report summary --report lcov --exclude-tests --no-match-coverage "script/*"
 
 clean:
 	forge clean

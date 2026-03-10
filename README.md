@@ -113,10 +113,16 @@ npm run dev --workspace frontend
 ```
 
 ## Testnet Demo
-Deploy registry + hook and print tx hashes/explorer links:
+Run full testnet lifecycle (deploy/reuse addresses, configure profiles, print tx URLs):
 
 ```bash
-RPC_URL=<rpc> PRIVATE_KEY=<pk> make demo-testnet
+make demo-testnet
+```
+
+Or run the unified workflow script directly:
+
+```bash
+./scripts/demo-workflow.sh --all
 ```
 
 ## Add a New Chain Profile

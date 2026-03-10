@@ -36,7 +36,7 @@ jobs:
         run: forge test -vvv
 
       - name: Forge coverage
-        run: forge coverage --report summary
+        run: forge coverage --report summary --exclude-tests --no-match-coverage "script/*"
 
       - name: Setup Node
         uses: actions/setup-node@v4
