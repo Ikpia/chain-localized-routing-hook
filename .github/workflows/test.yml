@@ -1,19 +1,17 @@
-name: Test Suite
+name: CI
 
 on:
   workflow_dispatch:
-  # push:
-  # pull_request:
-
-env:
-  FOUNDRY_PROFILE: ci
+  push:
+    branches: ["main"]
+  pull_request:
 
 jobs:
-  test:
-    name: Foundry Project
+  build-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -22,13 +20,32 @@ jobs:
         with:
           version: stable
 
-      - name: Build
-        run: |
-          forge --version
-          forge build --sizes
-        id: build
+      - name: Bootstrap pinned dependencies
+        run: ./scripts/bootstrap.sh
 
-      - name: Test
-        run: |
-          forge test -vvv
-        id: test
+      - name: Verify dependency integrity
+        run: ./scripts/verify_dependencies.sh
+
+      - name: Forge format check
+        run: forge fmt --check
+
+      - name: Forge build
+        run: forge build --sizes
+
+      - name: Forge test
+        run: forge test -vvv
+
+      - name: Forge coverage
+        run: forge coverage --report summary
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build --workspace frontend
