@@ -1,183 +1,152 @@
-# Uniswap v4 Hook Template
+# Chain-Localized Routing Hook
 
-**A template for writing Uniswap v4 Hooks 🦄**
+![Uniswap v4 mark](assets/uniswap-v4-mark.svg)
+![Chain routing mark](assets/chain-routing-mark.svg)
 
-### Get Started
+A production-oriented Uniswap v4 hook monorepo for chain-localized routing and execution policies.
 
-This template provides a starting point for writing Uniswap v4 Hooks, including a simple example and preconfigured test environment. Start by creating a new repository using the "Use this template" button at the top right of this page. Alternatively you can also click this link:
+## Problem
+Most routing behavior is offchain and global. This makes it hard to enforce deterministic, chain-specific market behavior directly at pool execution time.
 
-[![Use this Template](https://img.shields.io/badge/Use%20this%20Template-101010?style=for-the-badge&logo=github)](https://github.com/uniswapfoundation/v4-template/generate)
+## Solution
+`ChainLocalizedRoutingHook` + `RoutingPolicyRegistry` enforce chain-localized execution policy in swap hooks (`beforeSwap`/`afterSwap`) with deterministic, onchain checks:
 
-1. The example hook [Counter.sol](src/Counter.sol) demonstrates the `beforeSwap()` and `afterSwap()` hooks
-2. The test template [Counter.t.sol](test/Counter.t.sol) preconfigures the v4 pool manager, test tokens, and test liquidity.
+- swap size limits
+- cooldown and swaps-per-block throttles
+- router allowlists
+- actor deny lists
+- deterministic gas price ceiling checks
+- optional dynamic fee override signaling for dynamic-fee pools
 
-<details>
-<summary>Updating to v4-template:latest</summary>
+## Repo Layout
+This repo uses root-level Foundry structure and a root-level frontend:
 
-This template is actively maintained -- you can update the v4 dependencies, scripts, and helpers:
+- `src/`, `test/`, `script/`, `lib/`
+- `frontend/`
+- `shared/` (ABIs + constants consumed by frontend)
+- `docs/`, `assets/`, `context/`
+
+## Architecture
+```mermaid
+flowchart LR
+  FE[Frontend Dashboard] --> REG[RoutingPolicyRegistry]
+  FE --> SCRIPT[Foundry Scripts]
+  SCRIPT --> HOOK[ChainLocalizedRoutingHook]
+  HOOK --> PM[Uniswap v4 PoolManager]
+  PM --> POOL[Hooked Pool]
+  PM --> HOOK
+  HOOK --> REG
+```
+
+## Swap Lifecycle
+```mermaid
+sequenceDiagram
+  participant Trader
+  participant Router
+  participant PM as PoolManager
+  participant Hook as ChainLocalizedRoutingHook
+  participant Reg as RoutingPolicyRegistry
+
+  Trader->>Router: swap intent
+  Router->>PM: swap(poolKey, params, hookData)
+  PM->>Hook: beforeSwap(sender, key, params, hookData)
+  Hook->>Reg: validateAndRecordSwap(context)
+  alt allowed
+    Reg-->>Hook: allowed + optional fee override
+    Hook-->>PM: beforeSwap selector + fee override
+    PM-->>Router: swap result
+    PM->>Hook: afterSwap(...)
+  else blocked
+    Reg-->>Hook: blocked reasonCode
+    Hook-->>PM: revert SwapBlockedByPolicy(reasonCode)
+    PM-->>Router: wrapped revert
+  end
+```
+
+## Component Interaction
+```mermaid
+flowchart TD
+  FE[Frontend] -->|setChainProfile/setPoolPolicy| REG[RoutingPolicyRegistry]
+  FE -->|read events| REG
+  PM[PoolManager] -->|hook callback| HOOK[ChainLocalizedRoutingHook]
+  HOOK -->|context validation| REG
+  REG -->|decision + reason code| HOOK
+```
+
+## Contracts
+- `src/ChainLocalizedRoutingHook.sol`
+- `src/RoutingPolicyRegistry.sol`
+- `src/modules/LimitsModule.sol`
+- `src/modules/FeePolicyModule.sol`
+
+## Chain Profiles
+Implemented profile model:
+
+- `BASE`: higher throughput defaults and looser local routing constraints
+- `OPTIMISM`: stricter amount and cooldown behavior
+- `ARBITRUM`: allowlist-oriented mode with fee-adjustment support
+
+Details: [docs/chain-profiles.md](docs/chain-profiles.md)
+
+## Quickstart
+1. Bootstrap and pin dependencies:
+```bash
+make bootstrap
+```
+
+2. Build and test:
+```bash
+make build
+make test
+```
+
+3. Run profile demos locally:
+```bash
+make demo-local
+make demo-profiles
+```
+
+4. Start frontend:
+```bash
+npm install
+npm run dev --workspace frontend
+```
+
+## Testnet Demo
+Deploy registry + hook and print tx hashes/explorer links:
 
 ```bash
-git remote add template https://github.com/uniswapfoundation/v4-template
-git fetch template
-git merge template/main <BRANCH> --allow-unrelated-histories
+RPC_URL=<rpc> PRIVATE_KEY=<pk> make demo-testnet
 ```
 
-</details>
+## Add a New Chain Profile
+1. Extend `PolicyTypes.ChainProfile`.
+2. Add profile logic in `RoutingPolicyRegistry.seedDefaultPolicy` and `FeePolicyModule`.
+3. Add tests under `test/` for profile-specific allow/deny outcomes.
+4. Update `shared/constants/chains.ts` and frontend selectors.
+5. Update docs in `docs/chain-profiles.md`.
 
-### Requirements
+## Dependency Determinism
+- Uniswap periphery pinned by `scripts/bootstrap.sh` to:
+  - `3779387e5d296f39df543d23524b050f89a62917`
+- Nested `v4-core`/`permit2` come from that pinned periphery commit.
+- `scripts/verify_dependencies.sh` enforces pin + lockfile integrity.
 
-This template is designed to work with Foundry (stable). If you are using Foundry Nightly, you may encounter compatibility issues. You can update your Foundry installation to the latest stable version by running:
+## Assumptions
+- `/context/uniswap` and `/context/atrium` were not populated in this checkout; pinned Uniswap sources in `lib/` were used as primary technical reference.
+- Requirement text includes conflicting final commit targets (`300` and `58`); operational tooling defaults to `58` via `verify_commits.sh`.
 
-```
-foundryup
-```
+## Documentation Index
+- [docs/overview.md](docs/overview.md)
+- [docs/architecture.md](docs/architecture.md)
+- [docs/chain-profiles.md](docs/chain-profiles.md)
+- [docs/policy-engine.md](docs/policy-engine.md)
+- [docs/security.md](docs/security.md)
+- [docs/deployment.md](docs/deployment.md)
+- [docs/demo.md](docs/demo.md)
+- [docs/api.md](docs/api.md)
+- [docs/testing.md](docs/testing.md)
+- [docs/frontend.md](docs/frontend.md)
 
-To set up the project, run the following commands in your terminal to install dependencies and run the tests:
-
-```
-forge install
-forge test
-```
-
-### Local Development
-
-Other than writing unit tests (recommended!), you can only deploy & test hooks on [anvil](https://book.getfoundry.sh/anvil/) locally. Scripts are available in the `script/` directory, which can be used to deploy hooks, create pools, provide liquidity and swap tokens. The scripts support both local `anvil` environment as well as running them directly on a production network.
-
-### Executing locally with using **Anvil**:
-
-1. Start Anvil (or fork a specific chain using anvil):
-
-```bash
-anvil
-```
-
-or
-
-```bash
-anvil --fork-url <YOUR_RPC_URL>
-```
-
-2. Execute scripts:
-
-```bash
-forge script script/00_DeployHook.s.sol \
-    --rpc-url http://localhost:8545 \
-    --private-key <PRIVATE_KEY> \
-    --broadcast
-```
-
-### Using **RPC URLs** (actual transactions):
-
-:::info
-It is best to not store your private key even in .env or enter it directly in the command line. Instead use the `--account` flag to select your private key from your keystore.
-:::
-
-### Follow these steps if you have not stored your private key in the keystore:
-
-<details>
-
-1. Add your private key to the keystore:
-
-```bash
-cast wallet import <SET_A_NAME_FOR_KEY> --interactive
-```
-
-2. You will prompted to enter your private key and set a password, fill and press enter:
-
-```
-Enter private key: <YOUR_PRIVATE_KEY>
-Enter keystore password: <SET_NEW_PASSWORD>
-```
-
-You should see this:
-
-```
-`<YOUR_WALLET_PRIVATE_KEY_NAME>` keystore was saved successfully. Address: <YOUR_WALLET_ADDRESS>
-```
-
-::: warning
-Use `history -c` to clear your command history.
-:::
-
-</details>
-
-1. Execute scripts:
-
-```bash
-forge script script/00_DeployHook.s.sol \
-    --rpc-url <YOUR_RPC_URL> \
-    --account <YOUR_WALLET_PRIVATE_KEY_NAME> \
-    --sender <YOUR_WALLET_ADDRESS> \
-    --broadcast
-```
-
-You will prompted to enter your wallet password, fill and press enter:
-
-```
-Enter keystore password: <YOUR_PASSWORD>
-```
-
-### Key Modifications to note:
-
-1. Update the `token0` and `token1` addresses in the `BaseScript.sol` file to match the tokens you want to use in the network of your choice for sepolia and mainnet deployments.
-2. Update the `token0Amount` and `token1Amount` in the `CreatePoolAndAddLiquidity.s.sol` file to match the amount of tokens you want to provide liquidity with.
-3. Update the `token0Amount` and `token1Amount` in the `AddLiquidity.s.sol` file to match the amount of tokens you want to provide liquidity with.
-4. Update the `amountIn` and `amountOutMin` in the `Swap.s.sol` file to match the amount of tokens you want to swap.
-
-### Verifying the hook contract
-
-```bash
-forge verify-contract \
-  --rpc-url <URL> \
-  --chain <CHAIN_NAME_OR_ID> \
-  # Generally etherscan
-  --verifier <Verification_Provider> \
-  # Use --etherscan-api-key <ETHERSCAN_API_KEY> if you are using etherscan
-  --verifier-api-key <Verification_Provider_API_KEY> \
-  --constructor-args <ABI_ENCODED_ARGS> \
-  --num-of-optimizations <OPTIMIZER_RUNS> \
-  <Contract_Address> \
-  <path/to/Contract.sol:ContractName>
-  --watch
-```
-
-### Troubleshooting
-
-<details>
-
-#### Permission Denied
-
-When installing dependencies with `forge install`, Github may throw a `Permission Denied` error
-
-Typically caused by missing Github SSH keys, and can be resolved by following the steps [here](https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh)
-
-Or [adding the keys to your ssh-agent](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#adding-your-ssh-key-to-the-ssh-agent), if you have already uploaded SSH keys
-
-#### Anvil fork test failures
-
-Some versions of Foundry may limit contract code size to ~25kb, which could prevent local tests to fail. You can resolve this by setting the `code-size-limit` flag
-
-```
-anvil --code-size-limit 40000
-```
-
-#### Hook deployment failures
-
-Hook deployment failures are caused by incorrect flags or incorrect salt mining
-
-1. Verify the flags are in agreement:
-   - `getHookCalls()` returns the correct flags
-   - `flags` provided to `HookMiner.find(...)`
-2. Verify salt mining is correct:
-   - In **forge test**: the _deployer_ for: `new Hook{salt: salt}(...)` and `HookMiner.find(deployer, ...)` are the same. This will be `address(this)`. If using `vm.prank`, the deployer will be the pranking address
-   - In **forge script**: the deployer must be the CREATE2 Proxy: `0x4e59b44847b379578588920cA78FbF26c0B4956C`
-     - If anvil does not have the CREATE2 deployer, your foundry may be out of date. You can update it with `foundryup`
-
-</details>
-
-### Additional Resources
-
-- [Uniswap v4 docs](https://docs.uniswap.org/contracts/v4/overview)
-- [v4-periphery](https://github.com/uniswap/v4-periphery)
-- [v4-core](https://github.com/uniswap/v4-core)
-- [v4-by-example](https://v4-by-example.org)
+## Security
+See [SECURITY.md](SECURITY.md) and [docs/security.md](docs/security.md).
