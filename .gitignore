@@ -20,3 +20,15 @@ frontend/dist/
 # Coverage artifacts
 lcov.info
 coverage/
+
+# Frontend build metadata
+*.tsbuildinfo
+
+# Local context dumps (kept outside git history)
+context/.DS_Store
+context/documentation/
+context/reactive/
+context/uniswap_docs/
+context/HOOKS_QUICK_REFERENCE.md
+context/REACTIVE_HOOKS_ARCHITECTURE.md
+context/REACTIVE_HOOKS_ARCHITECTURE_PART2.md
