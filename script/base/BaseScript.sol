@@ -6,12 +6,6 @@ import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import {IPositionManager} from "@uniswap/v4-periphery/src/interfaces/IPositionManager.sol";
-import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-
-import {IUniswapV4Router04} from "hookmate/interfaces/router/IUniswapV4Router04.sol";
-import {AddressConstants} from "hookmate/constants/AddressConstants.sol";
 
 import {Deployers} from "test/utils/Deployers.sol";
 
@@ -19,22 +13,25 @@ import {Deployers} from "test/utils/Deployers.sol";
 contract BaseScript is Script, Deployers {
     address immutable deployerAddress;
 
-    /////////////////////////////////////
-    // --- Configure These ---
-    /////////////////////////////////////
-    IERC20 internal constant token0 = IERC20(0x0165878A594ca255338adfa4d48449f69242Eb8F);
-    IERC20 internal constant token1 = IERC20(0xa513E6E4b8f2a923D98304ec87F64353C4D5C853);
-    IHooks constant hookContract = IHooks(address(0));
-    /////////////////////////////////////
-
-    Currency immutable currency0;
-    Currency immutable currency1;
+    IERC20 internal immutable token0;
+    IERC20 internal immutable token1;
+    IHooks internal immutable hookContract;
+    Currency internal immutable currency0;
+    Currency internal immutable currency1;
 
     constructor() {
         // Make sure artifacts are available, either deploy or configure.
         deployArtifacts();
 
         deployerAddress = getDeployer();
+
+        address token0Address = vm.envAddress("TOKEN0");
+        address token1Address = vm.envAddress("TOKEN1");
+        address hookAddress = vm.envOr("HOOK_ADDRESS", address(0));
+
+        token0 = IERC20(token0Address);
+        token1 = IERC20(token1Address);
+        hookContract = IHooks(hookAddress);
 
         (currency0, currency1) = getCurrencies();
 
@@ -57,7 +54,7 @@ contract BaseScript is Script, Deployers {
         }
     }
 
-    function getCurrencies() internal pure returns (Currency, Currency) {
+    function getCurrencies() internal view returns (Currency, Currency) {
         require(address(token0) != address(token1));
 
         if (token0 < token1) {
