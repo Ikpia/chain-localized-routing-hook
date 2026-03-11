@@ -17,6 +17,7 @@
     "demo:local": "./scripts/demo-local.sh",
     "demo:profiles": "./scripts/demo-profiles.sh",
     "demo:testnet": "./scripts/demo-testnet.sh",
+    "demo:multichain": "./scripts/deploy-multichain.sh",
     "frontend:dev": "npm run dev --workspace frontend"
   }
 }

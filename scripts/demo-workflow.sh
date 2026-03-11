@@ -307,6 +307,9 @@ EOF
 }
 
 case "$MODE" in
+  --multi-chain)
+    ./scripts/deploy-multichain.sh
+    ;;
   --local)
     run_local_proof
     ;;
@@ -330,7 +333,7 @@ case "$MODE" in
     fi
     ;;
   *)
-    echo "Usage: $0 [--local|--testnet|--profiles|--all]" >&2
+    echo "Usage: $0 [--multi-chain|--local|--testnet|--profiles|--all]" >&2
     exit 1
     ;;
 esac

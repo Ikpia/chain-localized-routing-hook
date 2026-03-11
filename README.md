@@ -125,6 +125,31 @@ Or run the unified workflow script directly:
 ./scripts/demo-workflow.sh --all
 ```
 
+## Multi-Chain Deployment Pipeline (Production-Style)
+Deploy/reuse hook + registry independently with per-chain RPC and infra address validation:
+
+```bash
+make deploy-multichain
+```
+
+Outputs:
+- per-chain addresses written to `.env`:
+  - `BASE_SEPOLIA_REGISTRY`, `BASE_SEPOLIA_HOOK_ADDRESS`
+  - `OPTIMISM_SEPOLIA_REGISTRY`, `OPTIMISM_SEPOLIA_HOOK_ADDRESS`
+  - `ARBITRUM_SEPOLIA_REGISTRY`, `ARBITRUM_SEPOLIA_HOOK_ADDRESS`
+- deployment registry artifact:
+  - `shared/constants/deployments.sepolia.json`
+- tx hash + explorer URL logs per chain
+
+Notes:
+- Base Sepolia and Arbitrum Sepolia run by default with canonical v4 infra defaults sourced from `context/uniswap_docs/.../deployments.mdx`.
+- Optimism Sepolia is disabled by default (`DEPLOY_OPTIMISM_SEPOLIA=false`) because the local context does not include canonical v4 infra defaults for `11155420`.
+- To enable Optimism Sepolia deployment, set:
+  - `DEPLOY_OPTIMISM_SEPOLIA=true`
+  - `OPTIMISM_SEPOLIA_POOL_MANAGER_ADDRESS`
+  - `OPTIMISM_SEPOLIA_POSITION_MANAGER_ADDRESS`
+  - `OPTIMISM_SEPOLIA_UNIVERSAL_ROUTER_ADDRESS`
+
 ## Add a New Chain Profile
 1. Extend `PolicyTypes.ChainProfile`.
 2. Add profile logic in `RoutingPolicyRegistry.seedDefaultPolicy` and `FeePolicyModule`.

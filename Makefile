@@ -1,4 +1,4 @@
-.PHONY: bootstrap deps-verify build test coverage clean demo-local demo-testnet demo-profiles frontend-install frontend-dev frontend-build verify-commits
+.PHONY: bootstrap deps-verify build test coverage clean demo-local demo-testnet demo-profiles deploy-multichain frontend-install frontend-dev frontend-build verify-commits
 
 bootstrap:
 	./scripts/bootstrap.sh
@@ -27,6 +27,9 @@ demo-testnet:
 
 demo-profiles:
 	./scripts/demo-profiles.sh
+
+deploy-multichain:
+	./scripts/deploy-multichain.sh
 
 frontend-install:
 	npm install
