@@ -16,6 +16,8 @@ set -a
 source .env
 set +a
 
+DEMO_REUSE_ONLY="${DEMO_REUSE_ONLY:-true}"
+
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "[demo] ERROR: missing required command '$1'" >&2
@@ -29,6 +31,13 @@ done
 
 log() {
   printf "\n[demo] %s\n" "$1"
+}
+
+is_truthy() {
+  case "${1:-}" in
+    1|true|TRUE|yes|YES|on|ON) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 explorer_base_for_chain() {
@@ -189,6 +198,12 @@ ensure_testnet_deployed() {
     return 0
   fi
 
+  if is_truthy "$DEMO_REUSE_ONLY"; then
+    echo "[demo] ERROR: DEMO_REUSE_ONLY=true and no valid deployed REGISTRY/HOOK_ADDRESS found in .env." >&2
+    echo "[demo] Set DEMO_REUSE_ONLY=false only if you explicitly want this script to deploy." >&2
+    exit 1
+  fi
+
   log "PHASE 2/6 (Testnet): deploying registry + hook on chainId ${chain_id}"
   run_forge_script_broadcast "script/00_DeployHook.s.sol:DeployHookScript"
 
@@ -310,8 +325,8 @@ EOF
 run_multichain_proof() {
   local deployments_file="shared/constants/deployments.multichain.json"
 
-  log "PHASE 1/3 (Multi-chain): deploy/reuse per-chain hook + registry"
-  ./scripts/deploy-multichain.sh
+  log "PHASE 1/3 (Multi-chain): reuse deployed per-chain hook + registry (no new deployments)"
+  MULTICHAIN_REUSE_ONLY="$DEMO_REUSE_ONLY" ./scripts/deploy-multichain.sh
 
   if [ ! -f "$deployments_file" ]; then
     echo "[demo] WARN: deployment summary file not found: $deployments_file"

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-03-11T13:39:37Z",
+  "updatedAt": "2026-03-11T14:28:11Z",
   "baseSepolia": {
     "chainId": 84532,
     "registry": "0x5c544f279bd017ffbbc1d648b7fc0ffdd2fa3a91",
@@ -18,7 +18,7 @@
   "polygon": {
     "chainId": 137,
     "skipped": true,
-    "reason": "insufficient-native-gas-token",
+    "reason": "reuse-only-no-existing-deployment",
     "rpcUrl": "https://polygon-bor-rpc.publicnode.com",
     "deployer": "0x4b992F2Fbf714C0fCBb23baC5130Ace48CaD00cd"
   }

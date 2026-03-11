@@ -241,6 +241,10 @@ upsert_env "DEPLOY_OPTIMISM_SEPOLIA" "$DEPLOY_OPTIMISM_SEPOLIA"
 DEPLOY_POLYGON="${DEPLOY_POLYGON:-true}"
 upsert_env "DEPLOY_POLYGON" "$DEPLOY_POLYGON"
 
+# Reuse-only mode prevents all new deployments and only accepts already-deployed addresses.
+MULTICHAIN_REUSE_ONLY="${MULTICHAIN_REUSE_ONLY:-false}"
+upsert_env "MULTICHAIN_REUSE_ONLY" "$MULTICHAIN_REUSE_ONLY"
+
 # BaseScript constructor expects these even for pure hook deploy script.
 upsert_env "TOKEN0" "${TOKEN0:-0x0000000000000000000000000000000000000001}"
 upsert_env "TOKEN1" "${TOKEN1:-0x0000000000000000000000000000000000000002}"
@@ -394,6 +398,13 @@ deploy_one_chain() {
       echo "[multichain] ERROR: unable to verify existing deployment code on ${label} (RPC/network issue)." >&2
       exit 1
     fi
+  fi
+
+  if is_truthy "$MULTICHAIN_REUSE_ONLY"; then
+    echo "[multichain] Reuse-only mode enabled; no valid existing deployment for ${label}."
+    echo "[multichain] Skipping ${label} (reason: reuse-only-no-existing-deployment)."
+    mark_deployment_skipped "$json_key" "$expected_chain_id" "$rpc_url" "$DEPLOYER_ADDRESS" "reuse-only-no-existing-deployment"
+    return 0
   fi
 
   if is_truthy "$skip_if_zero_balance"; then
