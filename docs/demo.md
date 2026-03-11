@@ -10,9 +10,9 @@ Run the end-to-end demo script with phase logs:
 
 Available modes:
 
-- `--multi-chain`: deploy/reuse on Base/Arbitrum Sepolia and Polygon, with optional Optimism Sepolia when explicitly enabled
+- `--multi-chain`: read existing multi-chain deployment registry and print addresses + tx URLs
 - `--local`: local deterministic proof only
-- `--testnet`: Unichain Sepolia deploy + profile configuration
+- `--testnet`: Unichain Sepolia proof using existing deployed contracts + profile configuration
 - `--profiles`: local profile proof + testnet profile configuration (if `RPC_URL` is set)
 - `--all`: local + testnet
 
@@ -32,23 +32,21 @@ Available modes:
 `--local` runs:
 
 1. Dependency bootstrap.
-2. Contract coverage gate:
-   - `forge coverage --exclude-tests --no-match-coverage "script/*"`
-   - enforced at 100% for `src/**`.
-3. Profile lifecycle integration test.
-4. Hook behavior tests.
-5. Registry edge/fuzz/invariant tests.
+2. Profile lifecycle integration test.
+3. Hook behavior tests.
+4. Registry edge tests.
+5. Registry fuzz/invariant tests.
 
 ## Testnet Proof Phases (Unichain Sepolia)
 
 `--testnet` runs:
 
 1. Loads `.env`, validates RPC/signer, resolves chain context.
-2. Reuses deployed `REGISTRY` + `HOOK_ADDRESS` from `.env` if code exists.
-3. Deploys if missing, writes deployed addresses back to `.env`.
-4. Configures Base/Optimism/Arbitrum profile policies on `POOL_ID`.
-5. Executes allowlist/denylist admin transactions.
-6. Prints all tx hashes + explorer URLs.
+2. Requires existing `REGISTRY` + `HOOK_ADDRESS` from `.env` and verifies onchain bytecode.
+3. Configures Base/Optimism/Arbitrum profile policies on `POOL_ID`.
+4. Executes allowlist/denylist admin transactions.
+5. Prints all tx hashes + explorer URLs.
+6. Prints onchain snapshots for active profile and pool policy state.
 
 Explorer link format used on chain `1301`:
 
@@ -68,4 +66,8 @@ Optional but recommended:
 - `HOOK_ADDRESS`
 - `POOL_ID`
 
-If these are missing, the script populates them automatically where possible.
+If `REGISTRY` and `HOOK_ADDRESS` are missing, `--testnet` fails fast.
+
+## Reactive Network Note
+
+This repository does not integrate Reactive Network. Do not add or rely on `REACTIVE_*` environment variables for this demo workflow.

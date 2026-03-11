@@ -16,8 +16,6 @@ set -a
 source .env
 set +a
 
-DEMO_REUSE_ONLY="${DEMO_REUSE_ONLY:-true}"
-
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "[demo] ERROR: missing required command '$1'" >&2
@@ -31,13 +29,6 @@ done
 
 log() {
   printf "\n[demo] %s\n" "$1"
-}
-
-is_truthy() {
-  case "${1:-}" in
-    1|true|TRUE|yes|YES|on|ON) return 0 ;;
-    *) return 1 ;;
-  esac
 }
 
 explorer_base_for_chain() {
@@ -95,30 +86,49 @@ print_tx_links_from_runfile() {
     done
 }
 
-run_local_proof() {
-  log "PHASE 1/6 (User Perspective): local deterministic proof run"
+print_user_journey() {
   cat <<'EOF'
-[demo] User flow:
-  1. Integrator deploys hook + registry
-  2. Admin applies Base/Optimism/Arbitrum policies
-  3. Trader executes swaps through the same pool
-  4. Hook enforces chain-localized policy and emits allow/block reasons
-  5. Dashboard/tests confirm profile-dependent outcomes
+[demo] User-perspective flow:
+  1. Integrator points frontend at existing REGISTRY + HOOK_ADDRESS.
+  2. Admin selects profile (Base / Optimism / Arbitrum) and applies policy.
+  3. Trader submits swap intent via router into the hooked pool.
+  4. Hook calls registry policy engine and emits deterministic allow/block reason codes.
+  5. Team validates outcomes with tx traces, events, and test proofs.
 EOF
+}
+
+print_proof_inventory() {
+  cat <<'EOF'
+[demo] Proof inventory:
+  - Core hook: src/ChainLocalizedRoutingHook.sol
+  - Policy engine: src/RoutingPolicyRegistry.sol
+  - Policy types: src/libraries/PolicyTypes.sol
+  - Integration lifecycle proof: test/integration/ProfileLifecycle.t.sol
+  - Hook behavior proof: test/ChainLocalizedRoutingHook.t.sol
+  - Registry edge/fuzz/invariant proofs:
+    test/RoutingPolicyRegistry.t.sol
+    test/fuzz/RoutingPolicyRegistryFuzz.t.sol
+    test/invariant/RoutingPolicyRegistryInvariant.t.sol
+EOF
+}
+
+run_local_proof() {
+  log "PHASE 1/6 (User Perspective): end-to-end local proof plan"
+  print_user_journey
+  print_proof_inventory
 
   scripts/bootstrap.sh
 
-  log "PHASE 2/6: contract-level 100% forge coverage check"
-  forge coverage --report summary --exclude-tests --no-match-coverage "script/*"
-
-  log "PHASE 3/6: profile lifecycle integration proof"
+  log "PHASE 2/6: profile lifecycle integration proof"
   forge test --match-test testProfileSpecificOutcomes -vvv
 
-  log "PHASE 4/6: hook-level allow/block behavior proof"
+  log "PHASE 3/6: hook-level allow/block behavior proof"
   forge test --match-contract ChainLocalizedRoutingHookTest -vv
 
-  log "PHASE 5/6: policy engine edge/fuzz/invariant proof"
+  log "PHASE 4/6: policy engine edge behavior proof"
   forge test --match-contract RoutingPolicyRegistryTest -vv
+
+  log "PHASE 5/6: policy fuzz + invariant proof"
   forge test --match-contract RoutingPolicyRegistryFuzzTest -vv
   forge test --match-contract RoutingPolicyRegistryInvariantTest -vv
 
@@ -181,51 +191,31 @@ address_has_code() {
 
 ensure_testnet_deployed() {
   local chain_id="$CHAIN_ID"
-  local reuse=true
 
   if [ -z "${REGISTRY:-}" ] || [ -z "${HOOK_ADDRESS:-}" ]; then
-    reuse=false
-  else
-    if ! address_has_code "$REGISTRY" || ! address_has_code "$HOOK_ADDRESS"; then
-      reuse=false
-    fi
+    echo "[demo] ERROR: REGISTRY and HOOK_ADDRESS must already exist in .env for testnet proof." >&2
+    exit 1
   fi
-
-  if [ "$reuse" = true ]; then
-    log "PHASE 2/6 (Testnet): reusing deployed contracts from .env"
-    echo "[demo] REGISTRY=$REGISTRY"
-    echo "[demo] HOOK_ADDRESS=$HOOK_ADDRESS"
-    return 0
+  if ! address_has_code "$REGISTRY"; then
+    echo "[demo] ERROR: REGISTRY has no bytecode on chain ${chain_id}: ${REGISTRY}" >&2
+    exit 1
   fi
-
-  if is_truthy "$DEMO_REUSE_ONLY"; then
-    echo "[demo] ERROR: DEMO_REUSE_ONLY=true and no valid deployed REGISTRY/HOOK_ADDRESS found in .env." >&2
-    echo "[demo] Set DEMO_REUSE_ONLY=false only if you explicitly want this script to deploy." >&2
+  if ! address_has_code "$HOOK_ADDRESS"; then
+    echo "[demo] ERROR: HOOK_ADDRESS has no bytecode on chain ${chain_id}: ${HOOK_ADDRESS}" >&2
     exit 1
   fi
 
-  log "PHASE 2/6 (Testnet): deploying registry + hook on chainId ${chain_id}"
-  run_forge_script_broadcast "script/00_DeployHook.s.sol:DeployHookScript"
+  log "PHASE 2/6 (Testnet): reusing deployed contracts from .env (no deployments)"
+  echo "[demo] REGISTRY=${REGISTRY}"
+  echo "[demo] HOOK_ADDRESS=${HOOK_ADDRESS}"
 
   local run_file="broadcast/00_DeployHook.s.sol/${chain_id}/run-latest.json"
-  if [ ! -f "$run_file" ]; then
-    echo "[demo] ERROR: missing deploy run file: $run_file" >&2
-    exit 1
+  if [ -f "$run_file" ]; then
+    echo "[demo] Existing deployment transactions:"
+    print_tx_links_from_runfile "$run_file" "$chain_id"
+  else
+    echo "[demo] WARN: no local deployment run file found at ${run_file}; continuing with existing addresses."
   fi
-
-  local registry_addr hook_addr
-  registry_addr="$(jq -r '.transactions[] | select(.contractName == "RoutingPolicyRegistry") | .contractAddress // empty' "$run_file" | tail -n1)"
-  hook_addr="$(jq -r '.transactions[] | select(.contractName == "ChainLocalizedRoutingHook") | .contractAddress // empty' "$run_file" | tail -n1)"
-
-  if [ -z "$registry_addr" ] || [ -z "$hook_addr" ]; then
-    echo "[demo] ERROR: could not parse deployed contract addresses from $run_file" >&2
-    exit 1
-  fi
-
-  upsert_env "REGISTRY" "$registry_addr"
-  upsert_env "HOOK_ADDRESS" "$hook_addr"
-
-  print_tx_links_from_runfile "$run_file" "$chain_id"
 }
 
 ensure_demo_pool_id() {
@@ -247,6 +237,15 @@ configure_policy_profile() {
   local gas_ceiling_wei="${10}"
 
   log "PHASE 3/6 (Testnet): configure ${profile_name} policy for POOL_ID=${POOL_ID}"
+  echo "[demo] ${profile_name} expectation:"
+  if [ "$profile_name" = "BASE" ]; then
+    echo "  - higher throughput / looser limits"
+  elif [ "$profile_name" = "OPTIMISM" ]; then
+    echo "  - stricter limits / anti-MEV style throttling"
+  elif [ "$profile_name" = "ARBITRUM" ]; then
+    echo "  - allowlist-oriented mode with dynamic-fee support"
+  fi
+
   CHAIN_ID="$CHAIN_ID" \
   REGISTRY="$REGISTRY" \
   POOL_ID="$POOL_ID" \
@@ -265,6 +264,12 @@ configure_policy_profile() {
 
   local run_file="broadcast/11_SetProfilePolicy.s.sol/${CHAIN_ID}/run-latest.json"
   print_tx_links_from_runfile "$run_file" "$CHAIN_ID"
+
+  local active_profile policy_snapshot
+  active_profile="$(cast call "$REGISTRY" "getChainProfile(uint256)(uint8)" "$CHAIN_ID" --rpc-url "$RPC_URL" 2>/dev/null || true)"
+  policy_snapshot="$(cast call "$REGISTRY" "getPoolPolicy(uint256,bytes32)((bool,uint128,uint24,uint32,uint16,bool,bool,bool,uint24,uint64))" "$CHAIN_ID" "$POOL_ID" --rpc-url "$RPC_URL" 2>/dev/null || true)"
+  echo "[demo] onchain profile enum value: ${active_profile:-unavailable}"
+  echo "[demo] onchain policy snapshot: ${policy_snapshot:-unavailable}"
 }
 
 send_cast_tx() {
@@ -299,9 +304,11 @@ run_testnet_proof() {
 
   echo "[demo] chainId=${CHAIN_ID}"
   echo "[demo] rpc=${RPC_URL}"
+  print_user_journey
 
   ensure_testnet_deployed
   ensure_demo_pool_id
+  echo "[demo] POOL_ID=${POOL_ID}"
 
   configure_policy_profile "BASE" 1 "2000000000000000000" "2500" "0" "25" "false" "false" "2500" "5000000000"
   configure_policy_profile "OPTIMISM" 2 "500000000000000000" "800" "2" "8" "false" "true" "3000" "2000000000"
@@ -325,8 +332,7 @@ EOF
 run_multichain_proof() {
   local deployments_file="shared/constants/deployments.multichain.json"
 
-  log "PHASE 1/3 (Multi-chain): reuse deployed per-chain hook + registry (no new deployments)"
-  MULTICHAIN_REUSE_ONLY="$DEMO_REUSE_ONLY" ./scripts/deploy-multichain.sh
+  log "PHASE 1/3 (Multi-chain): load existing multi-chain deployment registry (no deployments)"
 
   if [ ! -f "$deployments_file" ]; then
     echo "[demo] WARN: deployment summary file not found: $deployments_file"
