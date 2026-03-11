@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-DEPLOYMENTS_FILE="shared/constants/deployments.sepolia.json"
+DEPLOYMENTS_FILE="shared/constants/deployments.multichain.json"
 
 if [ ! -f ".env" ]; then
   cat > .env <<'EOF'
@@ -101,7 +101,8 @@ ensure_deployments_file() {
   "updatedAt": null,
   "baseSepolia": null,
   "optimismSepolia": null,
-  "arbitrumSepolia": null
+  "arbitrumSepolia": null,
+  "polygon": null
 }
 EOF
   fi
@@ -140,6 +141,54 @@ update_deployments_file() {
   mv "$tmp_file" "$DEPLOYMENTS_FILE"
 }
 
+mark_deployment_skipped() {
+  local key="$1"
+  local chain_id="$2"
+  local rpc_url="$3"
+  local deployer="$4"
+  local reason="$5"
+  local sanitized_rpc_url
+  local tmp_file
+  tmp_file="$(mktemp)"
+  sanitized_rpc_url="$(sanitize_rpc_url "$rpc_url")"
+
+  jq \
+    --arg key "$key" \
+    --argjson chainId "$chain_id" \
+    --arg rpcUrl "$sanitized_rpc_url" \
+    --arg deployer "$deployer" \
+    --arg reason "$reason" \
+    --arg updatedAt "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+    '.updatedAt = $updatedAt
+    | .[$key] = {
+        chainId: $chainId,
+        skipped: true,
+        reason: $reason,
+        rpcUrl: $rpcUrl,
+        deployer: $deployer
+      }' \
+    "$DEPLOYMENTS_FILE" > "$tmp_file"
+
+  mv "$tmp_file" "$DEPLOYMENTS_FILE"
+}
+
+read_native_balance() {
+  local addr="$1"
+  local rpc_url="$2"
+  local attempt
+  local balance
+
+  for attempt in 1 2 3; do
+    if balance="$(cast balance "$addr" --rpc-url "$rpc_url" 2>/dev/null)"; then
+      echo "$balance"
+      return 0
+    fi
+    sleep 1
+  done
+
+  return 1
+}
+
 print_runfile_txs() {
   local run_file="$1"
   local explorer_base="$2"
@@ -163,10 +212,12 @@ print_runfile_txs() {
 BASE_SEPOLIA_RPC_URL="${BASE_SEPOLIA_RPC_URL:-https://sepolia.base.org}"
 OPTIMISM_SEPOLIA_RPC_URL="${OPTIMISM_SEPOLIA_RPC_URL:-https://sepolia.optimism.io}"
 ARBITRUM_SEPOLIA_RPC_URL="${ARBITRUM_SEPOLIA_RPC_URL:-https://sepolia-rollup.arbitrum.io/rpc}"
+POLYGON_RPC_URL="${POLYGON_RPC_URL:-https://polygon-bor-rpc.publicnode.com}"
 
 upsert_env "BASE_SEPOLIA_RPC_URL" "$BASE_SEPOLIA_RPC_URL"
 upsert_env "OPTIMISM_SEPOLIA_RPC_URL" "$OPTIMISM_SEPOLIA_RPC_URL"
 upsert_env "ARBITRUM_SEPOLIA_RPC_URL" "$ARBITRUM_SEPOLIA_RPC_URL"
+upsert_env "POLYGON_RPC_URL" "$POLYGON_RPC_URL"
 
 # Defaults from /context/uniswap_docs/docs/docs/contracts/v4/deployments.mdx.
 upsert_env "BASE_SEPOLIA_POOL_MANAGER_ADDRESS" "${BASE_SEPOLIA_POOL_MANAGER_ADDRESS:-0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408}"
@@ -177,9 +228,18 @@ upsert_env "ARBITRUM_SEPOLIA_POOL_MANAGER_ADDRESS" "${ARBITRUM_SEPOLIA_POOL_MANA
 upsert_env "ARBITRUM_SEPOLIA_POSITION_MANAGER_ADDRESS" "${ARBITRUM_SEPOLIA_POSITION_MANAGER_ADDRESS:-0xAc631556d3d4019C95769033B5E719dD77124BAc}"
 upsert_env "ARBITRUM_SEPOLIA_UNIVERSAL_ROUTER_ADDRESS" "${ARBITRUM_SEPOLIA_UNIVERSAL_ROUTER_ADDRESS:-0xefd1d4bd4cf1e86da286bb4cb1b8bced9c10ba47}"
 
+# Polygon mainnet defaults from /context/uniswap_docs/docs/docs/contracts/v4/deployments.mdx.
+upsert_env "POLYGON_POOL_MANAGER_ADDRESS" "${POLYGON_POOL_MANAGER_ADDRESS:-0x67366782805870060151383f4BbFF9daB53e5cD6}"
+upsert_env "POLYGON_POSITION_MANAGER_ADDRESS" "${POLYGON_POSITION_MANAGER_ADDRESS:-0x1Ec2eBf4F37E7363FDfe3551602425af0B3ceef9}"
+upsert_env "POLYGON_UNIVERSAL_ROUTER_ADDRESS" "${POLYGON_UNIVERSAL_ROUTER_ADDRESS:-0x1095692a6237d83c6a72f3f5efedb9a670c49223}"
+
 # Optimism Sepolia v4 infra defaults are not in local context; enable only with explicit addresses.
 DEPLOY_OPTIMISM_SEPOLIA="${DEPLOY_OPTIMISM_SEPOLIA:-false}"
 upsert_env "DEPLOY_OPTIMISM_SEPOLIA" "$DEPLOY_OPTIMISM_SEPOLIA"
+
+# Polygon deployment is included by default, and auto-skips when deployer has zero MATIC.
+DEPLOY_POLYGON="${DEPLOY_POLYGON:-true}"
+upsert_env "DEPLOY_POLYGON" "$DEPLOY_POLYGON"
 
 # BaseScript constructor expects these even for pure hook deploy script.
 upsert_env "TOKEN0" "${TOKEN0:-0x0000000000000000000000000000000000000001}"
@@ -286,6 +346,7 @@ deploy_one_chain() {
   local pool_manager_key="$8"
   local position_manager_key="$9"
   local universal_router_key="${10}"
+  local skip_if_zero_balance="${11:-false}"
 
   echo
   echo "[multichain] === ${label} ==="
@@ -332,6 +393,24 @@ deploy_one_chain() {
     if [ "$registry_code_status" -eq 2 ] || [ "$hook_code_status" -eq 2 ]; then
       echo "[multichain] ERROR: unable to verify existing deployment code on ${label} (RPC/network issue)." >&2
       exit 1
+    fi
+  fi
+
+  if is_truthy "$skip_if_zero_balance"; then
+    if [ "$DEPLOYER_ADDRESS" = "unknown" ]; then
+      echo "[multichain] WARN: cannot pre-check native balance (unknown deployer in account mode)."
+    else
+      local deployer_balance
+      if ! deployer_balance="$(read_native_balance "$DEPLOYER_ADDRESS" "$rpc_url")"; then
+        echo "[multichain] ERROR: failed to read deployer balance on ${label}." >&2
+        exit 1
+      fi
+
+      if [ "$deployer_balance" = "0" ]; then
+        echo "[multichain] WARN: skipping ${label}; deployer ${DEPLOYER_ADDRESS} has 0 native gas token."
+        mark_deployment_skipped "$json_key" "$expected_chain_id" "$rpc_url" "$DEPLOYER_ADDRESS" "insufficient-native-gas-token"
+        return 0
+      fi
     fi
   fi
 
@@ -408,10 +487,30 @@ deploy_one_chain \
   "ARBITRUM_SEPOLIA_POSITION_MANAGER_ADDRESS" \
   "ARBITRUM_SEPOLIA_UNIVERSAL_ROUTER_ADDRESS"
 
+if is_truthy "$DEPLOY_POLYGON"; then
+  deploy_one_chain \
+    "POLYGON" \
+    "137" \
+    "$POLYGON_RPC_URL" \
+    "polygon" \
+    "POLYGON_REGISTRY" \
+    "POLYGON_HOOK_ADDRESS" \
+    "https://polygonscan.com/tx/" \
+    "POLYGON_POOL_MANAGER_ADDRESS" \
+    "POLYGON_POSITION_MANAGER_ADDRESS" \
+    "POLYGON_UNIVERSAL_ROUTER_ADDRESS" \
+    "true"
+else
+  echo
+  echo "[multichain] === POLYGON ==="
+  echo "[multichain] Skipping (DEPLOY_POLYGON=false)."
+fi
+
 echo
 echo "[multichain] Completed multi-chain deployment pipeline."
 echo "[multichain] Updated .env keys:"
 echo "  BASE_SEPOLIA_REGISTRY, BASE_SEPOLIA_HOOK_ADDRESS"
 echo "  OPTIMISM_SEPOLIA_REGISTRY, OPTIMISM_SEPOLIA_HOOK_ADDRESS (if enabled)"
 echo "  ARBITRUM_SEPOLIA_REGISTRY, ARBITRUM_SEPOLIA_HOOK_ADDRESS"
+echo "  POLYGON_REGISTRY, POLYGON_HOOK_ADDRESS (if enabled and funded)"
 echo "[multichain] Deployment registry file: ${DEPLOYMENTS_FILE}"

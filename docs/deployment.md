@@ -21,7 +21,7 @@ This runs:
 3. Execute allowlist/denylist admin transactions.
 4. Print tx hashes and explorer URLs.
 
-## Multi-Chain Deployment Pipeline (Base / OP / Arb Sepolia)
+## Multi-Chain Deployment Pipeline (Base / OP / Arb Sepolia + Polygon)
 ```bash
 make deploy-multichain
 ```
@@ -29,6 +29,7 @@ make deploy-multichain
 This script deploys (or reuses if code exists) on:
 - Base Sepolia (`84532`)
 - Arbitrum Sepolia (`421614`)
+- Polygon (`137`)
 
 Optimism Sepolia (`11155420`) is opt-in:
 - set `DEPLOY_OPTIMISM_SEPOLIA=true`
@@ -41,6 +42,7 @@ Optimism Sepolia (`11155420`) is opt-in:
 - `BASE_SEPOLIA_RPC_URL` (default: `https://sepolia.base.org`)
 - `OPTIMISM_SEPOLIA_RPC_URL` (default: `https://sepolia.optimism.io`)
 - `ARBITRUM_SEPOLIA_RPC_URL` (default: `https://sepolia-rollup.arbitrum.io/rpc`)
+- `POLYGON_RPC_URL` (default: `https://polygon-bor-rpc.publicnode.com`)
 
 ### Infra Address Config
 The script validates chain-specific infra addresses onchain before deployment:
@@ -56,6 +58,12 @@ Optimism Sepolia (only when enabled):
 - `OPTIMISM_SEPOLIA_POSITION_MANAGER_ADDRESS`
 - `OPTIMISM_SEPOLIA_UNIVERSAL_ROUTER_ADDRESS`
 
+Polygon:
+- `POLYGON_POOL_MANAGER_ADDRESS`
+- `POLYGON_POSITION_MANAGER_ADDRESS`
+- `POLYGON_UNIVERSAL_ROUTER_ADDRESS`
+- `DEPLOY_POLYGON` (default `true`; skips when deployer has zero MATIC)
+
 ### Outputs
 1. `.env` updates:
 - `BASE_SEPOLIA_REGISTRY`
@@ -64,9 +72,11 @@ Optimism Sepolia (only when enabled):
 - `OPTIMISM_SEPOLIA_HOOK_ADDRESS`
 - `ARBITRUM_SEPOLIA_REGISTRY`
 - `ARBITRUM_SEPOLIA_HOOK_ADDRESS`
+- `POLYGON_REGISTRY`
+- `POLYGON_HOOK_ADDRESS`
 
 2. Deployment registry file:
-- `shared/constants/deployments.sepolia.json`
+- `shared/constants/deployments.multichain.json`
 
 3. Console logs:
 - tx hashes

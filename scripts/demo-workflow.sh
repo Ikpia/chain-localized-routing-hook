@@ -37,6 +37,7 @@ explorer_base_for_chain() {
     84532) echo "https://sepolia.basescan.org/tx/" ;;
     11155420) echo "https://sepolia-optimism.etherscan.io/tx/" ;;
     421614) echo "https://sepolia.arbiscan.io/tx/" ;;
+    137) echo "https://polygonscan.com/tx/" ;;
     *) echo "" ;;
   esac
 }
@@ -306,9 +307,61 @@ EOF
   log "PHASE 6/6 (Testnet): complete"
 }
 
+run_multichain_proof() {
+  local deployments_file="shared/constants/deployments.multichain.json"
+
+  log "PHASE 1/3 (Multi-chain): deploy/reuse per-chain hook + registry"
+  ./scripts/deploy-multichain.sh
+
+  if [ ! -f "$deployments_file" ]; then
+    echo "[demo] WARN: deployment summary file not found: $deployments_file"
+    return 0
+  fi
+
+  log "PHASE 2/3 (Multi-chain): deployment summary and tx links"
+  jq -c '
+    to_entries[]
+    | select(.key != "updatedAt")
+    | {
+        key: .key,
+        chainId: (.value.chainId // ""),
+        registry: (.value.registry // ""),
+        hook: (.value.hook // ""),
+        skipped: (.value.skipped // false),
+        reason: (.value.reason // "")
+      }
+  ' "$deployments_file" | while IFS= read -r row; do
+    local key chain_id registry hook skipped reason
+    key="$(jq -r '.key' <<< "$row")"
+    chain_id="$(jq -r '.chainId' <<< "$row")"
+    registry="$(jq -r '.registry' <<< "$row")"
+    hook="$(jq -r '.hook' <<< "$row")"
+    skipped="$(jq -r '.skipped' <<< "$row")"
+    reason="$(jq -r '.reason' <<< "$row")"
+
+    if [ "$skipped" = "true" ]; then
+      echo "[demo] ${key}: skipped (${reason})"
+      continue
+    fi
+
+    if [ -z "$registry" ] || [ -z "$hook" ] || [ -z "$chain_id" ]; then
+      echo "[demo] ${key}: not deployed"
+      continue
+    fi
+
+    echo "[demo] ${key}:"
+    echo "  chainId: ${chain_id}"
+    echo "  registry: ${registry}"
+    echo "  hook: ${hook}"
+    print_tx_links_from_runfile "broadcast/00_DeployHook.s.sol/${chain_id}/run-latest.json" "$chain_id"
+  done
+
+  log "PHASE 3/3 (Multi-chain): complete"
+}
+
 case "$MODE" in
   --multi-chain)
-    ./scripts/deploy-multichain.sh
+    run_multichain_proof
     ;;
   --local)
     run_local_proof

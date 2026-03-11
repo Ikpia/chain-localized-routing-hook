@@ -150,6 +150,7 @@ contract BaseScript is Script, Deployers {
         if (block.chainid == 10) return "OPTIMISM";
         if (block.chainid == 8453) return "BASE";
         if (block.chainid == 42161) return "ARBITRUM";
+        if (block.chainid == 137) return "POLYGON";
         if (block.chainid == 1301) return "UNICHAIN_SEPOLIA";
         if (block.chainid == 84532) return "BASE_SEPOLIA";
         if (block.chainid == 11155420) return "OPTIMISM_SEPOLIA";

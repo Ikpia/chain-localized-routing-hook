@@ -10,7 +10,7 @@ Run the end-to-end demo script with phase logs:
 
 Available modes:
 
-- `--multi-chain`: deploy/reuse on Base/Arbitrum Sepolia by default, with optional Optimism Sepolia when explicitly enabled
+- `--multi-chain`: deploy/reuse on Base/Arbitrum Sepolia and Polygon, with optional Optimism Sepolia when explicitly enabled
 - `--local`: local deterministic proof only
 - `--testnet`: Unichain Sepolia deploy + profile configuration
 - `--profiles`: local profile proof + testnet profile configuration (if `RPC_URL` is set)
