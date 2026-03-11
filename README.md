@@ -164,17 +164,17 @@ Base Sepolia (`84532`)
 - `RoutingPolicyRegistry`: `0x5c544f279bd017ffbbc1d648b7fc0ffdd2fa3a91`
 - `ChainLocalizedRoutingHook`: `0x96033de293f05177c3b9872f45aad3515a7980c0`
 - Tx URLs:
-  - `https://sepolia.basescan.org/tx/0x6ee764c425de83253f3122df89305233ae73a2aaf119338bd9dc8e32ec66c9f8`
-  - `https://sepolia.basescan.org/tx/0x65d4759b2b566d7a3f495bac70a6b0d682f23c8e7e2b0ad929367dfce586866c`
-  - `https://sepolia.basescan.org/tx/0x036dacfa4d02c47c7a1e39776be5e0fd35065142e5dccafa453825ae85a52620`
+  - [0x6ee764c425de83253f3122df89305233ae73a2aaf119338bd9dc8e32ec66c9f8](https://sepolia.basescan.org/tx/0x6ee764c425de83253f3122df89305233ae73a2aaf119338bd9dc8e32ec66c9f8)
+  - [0x65d4759b2b566d7a3f495bac70a6b0d682f23c8e7e2b0ad929367dfce586866c](https://sepolia.basescan.org/tx/0x65d4759b2b566d7a3f495bac70a6b0d682f23c8e7e2b0ad929367dfce586866c)
+  - [0x036dacfa4d02c47c7a1e39776be5e0fd35065142e5dccafa453825ae85a52620](https://sepolia.basescan.org/tx/0x036dacfa4d02c47c7a1e39776be5e0fd35065142e5dccafa453825ae85a52620)
 
 Arbitrum Sepolia (`421614`)
 - `RoutingPolicyRegistry`: `0x86e3ea2c1593a8d7aa84e872dd9c988d053a9ac9`
 - `ChainLocalizedRoutingHook`: `0xd0c32eb387bfbb88d533d05edf03d1fe055080c0`
 - Tx URLs:
-  - `https://sepolia.arbiscan.io/tx/0xd85d80606656c73e6815219a8e145caae4e994e0e1c39120af1fb76c9740bb64`
-  - `https://sepolia.arbiscan.io/tx/0x3563cedd31488ee8a3da63c38cf71da177398dbc219f077e44e388f2b0ea3fa7`
-  - `https://sepolia.arbiscan.io/tx/0xb450be477500506bf281056d56a1acdf04accf91cefc1171d9061e20c5eb40a3`
+  - [0xd85d80606656c73e6815219a8e145caae4e994e0e1c39120af1fb76c9740bb64](https://sepolia.arbiscan.io/tx/0xd85d80606656c73e6815219a8e145caae4e994e0e1c39120af1fb76c9740bb64)
+  - [0x3563cedd31488ee8a3da63c38cf71da177398dbc219f077e44e388f2b0ea3fa7](https://sepolia.arbiscan.io/tx/0x3563cedd31488ee8a3da63c38cf71da177398dbc219f077e44e388f2b0ea3fa7)
+  - [0xb450be477500506bf281056d56a1acdf04accf91cefc1171d9061e20c5eb40a3](https://sepolia.arbiscan.io/tx/0xb450be477500506bf281056d56a1acdf04accf91cefc1171d9061e20c5eb40a3)
 
 Polygon (`137`)
 - Status: skipped in demo because `DEMO_REUSE_ONLY=true` and no existing `POLYGON_REGISTRY`/`POLYGON_HOOK_ADDRESS` were present.
@@ -184,9 +184,9 @@ Polygon (`137`)
   - `REGISTRY=0x30f358cb200bc849f220ee0caa9a1b2f44c0a7d6`
   - `HOOK_ADDRESS=0x1005b7776b0f86ff49c4da8c26fbefc12c6a00c0`
   - Tx URLs:
-    - `https://sepolia.uniscan.xyz/tx/0x4910a4036dc6e0c3b04aa584db9905308c30926556ff21aedf5513ec90aba4cc`
-    - `https://sepolia.uniscan.xyz/tx/0x2cab4d971e97f5de2e339076aef0cb6298c280763577a461635691f3f430121d`
-    - `https://sepolia.uniscan.xyz/tx/0x5743e0d47f9204418e0599663219fe2d45c145144ba0ff352b2e3cbdc8cabf99`
+    - [0x4910a4036dc6e0c3b04aa584db9905308c30926556ff21aedf5513ec90aba4cc](https://sepolia.uniscan.xyz/tx/0x4910a4036dc6e0c3b04aa584db9905308c30926556ff21aedf5513ec90aba4cc)
+    - [0x2cab4d971e97f5de2e339076aef0cb6298c280763577a461635691f3f430121d](https://sepolia.uniscan.xyz/tx/0x2cab4d971e97f5de2e339076aef0cb6298c280763577a461635691f3f430121d)
+    - [0x5743e0d47f9204418e0599663219fe2d45c145144ba0ff352b2e3cbdc8cabf99](https://sepolia.uniscan.xyz/tx/0x5743e0d47f9204418e0599663219fe2d45c145144ba0ff352b2e3cbdc8cabf99)
 - Base Sepolia (`84532`):
   - `BASE_SEPOLIA_REGISTRY=0x5c544f279bd017ffbbc1d648b7fc0ffdd2fa3a91`
   - `BASE_SEPOLIA_HOOK_ADDRESS=0x96033de293f05177c3b9872f45aad3515a7980c0`
