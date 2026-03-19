@@ -1,0 +1,23 @@
+{
+  "name": "chain-localized-routing-hook",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "bootstrap": "./scripts/bootstrap.sh",
+    "deps:verify": "./scripts/verify_dependencies.sh",
+    "build": "forge build && npm run build --workspace frontend",
+    "test": "forge test",
+    "coverage": "forge coverage --report summary --report lcov --exclude-tests --no-match-coverage \"script/*\"",
+    "demo:local": "./scripts/demo-local.sh",
+    "demo:profiles": "./scripts/demo-profiles.sh",
+    "demo:testnet": "./scripts/demo-testnet.sh",
+    "demo:multichain": "./scripts/deploy-multichain.sh",
+    "frontend:dev": "npm run dev --workspace frontend"
+  }
+}
