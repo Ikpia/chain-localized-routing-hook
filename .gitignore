@@ -1,0 +1,37 @@
+# Compiler files
+cache/
+out/
+
+# Ignores development (and goerli) broadcast logs
+!/broadcast
+/broadcast/*/31337/
+/broadcast/*/5/
+/broadcast/**/dry-run/
+
+# Dotenv file
+.env
+
+# Node modules
+node_modules/
+frontend/node_modules/
+frontend/dist/
+.tooling/
+
+# Coverage artifacts
+lcov.info
+coverage/
+
+# Frontend build metadata
+*.tsbuildinfo
+
+# Local context dumps (kept outside git history)
+context/.DS_Store
+context/documentation/
+context/reactive/
+context/uniswap_docs/
+context/HOOKS_QUICK_REFERENCE.md
+context/REACTIVE_HOOKS_ARCHITECTURE.md
+context/REACTIVE_HOOKS_ARCHITECTURE_PART2.md
+context/
+lib/
+
