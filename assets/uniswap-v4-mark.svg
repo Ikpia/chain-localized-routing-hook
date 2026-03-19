@@ -1,0 +1,6 @@
+<svg width="220" height="56" viewBox="0 0 220 56" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <rect width="220" height="56" rx="12" fill="#111111"/>
+  <path d="M26 38C31.3 32.7 37.3 26.7 45.2 20.9C47.4 19.3 50.7 19.4 52.7 21.2C55.5 23.7 55.4 28.1 52.5 30.3C47.2 34.4 41.7 39.5 36.8 44.2L26 38Z" fill="#FF007A"/>
+  <circle cx="53" cy="17" r="5" fill="#FFD1E9"/>
+  <text x="74" y="35" fill="#FFFFFF" font-family="Space Grotesk, Arial, sans-serif" font-size="20" font-weight="700">Uniswap v4</text>
+</svg>
