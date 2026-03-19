@@ -1,0 +1,37 @@
+[profile.default]
+bytecode_hash = "none"
+evm_version = "cancun"
+ffi = true
+libs = ["lib"]
+out = "out"
+solc_version = "0.8.30"
+src = "src"
+test = "test"
+script = "script"
+no_match_coverage = "(^|/)(script|lib|test/utils|test/shared)/"
+via_ir = false
+optimizer = true
+optimizer_runs = 20_000
+fs_permissions = [
+  { access = "read", path = "./" },
+  { access = "read-write", path = "./broadcast" },
+  { access = "read-write", path = "./cache" },
+  { access = "read-write", path = "./out" }
+]
+
+[fuzz]
+runs = 1_500
+
+[invariant]
+runs = 256
+depth = 64
+fail_on_revert = false
+
+[fmt]
+line_length = 110
+bracket_spacing = true
+int_types = "short"
+
+[lint]
+exclude_lints = ["screaming-snake-case-immutable", "screaming-snake-case-const"]
+lint_on_build = true
