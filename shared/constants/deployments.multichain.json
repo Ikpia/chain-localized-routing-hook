@@ -1,0 +1,25 @@
+{
+  "updatedAt": "2026-03-11T16:36:11Z",
+  "baseSepolia": {
+    "chainId": 84532,
+    "registry": "0x5c544f279bd017ffbbc1d648b7fc0ffdd2fa3a91",
+    "hook": "0x96033de293f05177c3b9872f45aad3515a7980c0",
+    "rpcUrl": "https://base-sepolia.g.alchemy.com",
+    "deployer": "0x4b992F2Fbf714C0fCBb23baC5130Ace48CaD00cd"
+  },
+  "optimismSepolia": null,
+  "arbitrumSepolia": {
+    "chainId": 421614,
+    "registry": "0x86e3ea2c1593a8d7aa84e872dd9c988d053a9ac9",
+    "hook": "0xd0c32eb387bfbb88d533d05edf03d1fe055080c0",
+    "rpcUrl": "https://sepolia-rollup.arbitrum.io",
+    "deployer": "0x4b992F2Fbf714C0fCBb23baC5130Ace48CaD00cd"
+  },
+  "polygon": {
+    "chainId": 137,
+    "skipped": true,
+    "reason": "reuse-only-no-existing-deployment",
+    "rpcUrl": "https://polygon-bor-rpc.publicnode.com",
+    "deployer": "0x4b992F2Fbf714C0fCBb23baC5130Ace48CaD00cd"
+  }
+}
